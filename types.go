@@ -12,6 +12,11 @@ type Request struct {
 }
 type NextFunction func()
 type HandlerFunc func(Response, Request, NextFunction)
+type Route struct {
+	path     string
+	method   string
+	handlers []HandlerFunc
+}
 type Router struct {
-	routes map[string][]HandlerFunc
+	routes []Route
 }

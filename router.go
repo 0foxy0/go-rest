@@ -6,20 +6,23 @@ import (
 )
 
 func (r *Router) Use(path string, router *Router) {
-	for key, value := range router.routes {
-		route := fmt.Sprintf("%s%s", path, key)
-		r.routes[route] = value
+	for _, route := range router.routes {
+		route.path = fmt.Sprintf("%s%s", path, route.path)
+		r.routes = append(r.routes, route)
 	}
 }
 func (r *Router) Get(path string, handlers ...HandlerFunc) {
-	r.routes[path] = handlers
+	r.routes = append(r.routes, Route{path: path, method: "GET", handlers: handlers})
 }
 
 func (r *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
+	routeIndex := findRouteByPathAndMethod(r.routes, path, req.Method)
 
-	if handlers, ok := r.routes[path]; ok {
+	if routeIndex != -1 {
+		handlers := r.routes[routeIndex].handlers
 		handlerIndex := 0
+
 		var next func()
 		next = func() {
 			if handlerIndex >= len(handlers) {
@@ -28,6 +31,7 @@ func (r *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			handlerIndex++
 			handlers[handlerIndex](Response{rw}, Request{req}, next)
 		}
+
 		handlers[0](Response{rw}, Request{req}, next)
 	} else {
 		http.NotFound(rw, req)
